@@ -45,8 +45,7 @@ impl InputHandler {
                     ActionResult::PausedAndJumped
                 }
                 State::Paused { .. } => {
-                    let _ = state.transition(Event::Resume);
-                    ActionResult::Continue
+                    ActionResult::Render
                 }
                 _ => ActionResult::Continue,
             },
@@ -220,8 +219,7 @@ mod tests {
 
         let result = handler.handle_key(&Key::Named(NamedKey::Space), &mut state);
 
-        assert_eq!(result, ActionResult::Continue);
-        assert!(matches!(state.current_state(), State::Playing { .. }));
+        assert_eq!(result, ActionResult::Render);
     }
 
     #[test]
