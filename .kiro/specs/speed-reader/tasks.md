@@ -88,12 +88,11 @@
 - **Requirement**: 5.2
 - **Design**: Extension trait section
 - **Boundary**: `zed-ext/`
-- **Depends**: —
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 3.2 Zed ext slash command
 - **Requirement**: 1.2, 5.2
 - **Design**: ExtSlashCommand section
 - **Boundary**: `zed-ext/src/lib.rs`
 - **Depends**: 3.1
-- **Status**: `[-]`
+- **Status**: `[x]`
