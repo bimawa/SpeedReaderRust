@@ -1,0 +1,13 @@
+{
+  "feature_name": "speed-reader",
+  "phase": "tasks-generated",
+  "language": "ru",
+  "created_at": "2026-07-24T00:00:00Z",
+  "updated_at": "2026-07-24T00:00:00Z",
+  "description": "Расширение для Zed editor, добавляющее SpeedReader — всплывающее окно для быстрого чтения текста методом RSVP (слово за словом с выделенной центральной буквой). Позволяет читать большие документы и спецификации прямо в редакторе, не покидая его. При паузе/отмене фокусирует редактор на позиции чтения.",
+  "approvals": {
+    "requirements": { "generated": true, "approved": true },
+    "design": { "generated": true, "approved": true },
+    "tasks": { "generated": true, "approved": true }
+  }
+}

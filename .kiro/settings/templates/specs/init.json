@@ -1,0 +1,13 @@
+{
+  "feature_name": "{{FEATURE_NAME}}",
+  "phase": "initialized",
+  "language": "{{LANGUAGE}}",
+  "created_at": "{{TIMESTAMP}}",
+  "updated_at": "{{TIMESTAMP}}",
+  "description": "{{PROJECT_DESCRIPTION}}",
+  "approvals": {
+    "requirements": { "generated": false, "approved": false },
+    "design": { "generated": false, "approved": false },
+    "tasks": { "generated": false }
+  }
+}
