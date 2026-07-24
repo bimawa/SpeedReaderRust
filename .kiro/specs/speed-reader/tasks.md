@@ -80,7 +80,7 @@
 - **Design**: OverlayWindow, IPC Protocol sections
 - **Boundary**: `gui/src/overlay.rs`, `gui/src/ipc.rs`
 - **Depends**: 2.2, 2.3, 2.4
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ## 3. Zed Extension (speed-reader-zed)
 
