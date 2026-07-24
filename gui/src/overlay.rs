@@ -17,13 +17,13 @@ use winit::{
 use crate::input::{ActionResult, InputHandler};
 use crate::renderer::RSVPRenderer;
 
-pub const W: u32 = 600;
-pub const H: u32 = 200;
+const W: f64 = 600.0;
+const H: f64 = 200.0;
 
 fn wa() -> WindowAttributes {
     WindowAttributes::default()
         .with_title("SpeedReader")
-        .with_inner_size(winit::dpi::Size::Logical(LogicalSize::new(W as f64, H as f64)))
+        .with_inner_size(winit::dpi::Size::Logical(LogicalSize::new(W, H)))
         .with_decorations(false).with_transparent(true)
         .with_window_level(WindowLevel::AlwaysOnTop).with_visible(true)
 }
@@ -33,13 +33,14 @@ pub struct OverlayWindow {
     pixels: Option<Pixels<'static>>,
     renderer: RSVPRenderer,
     input_handler: InputHandler,
-    reading_state: ReadingState,
+    state: ReadingState,
     config: ConfigModel,
     tokens: Vec<Token>,
-    timing_engine: TimingEngine,
+    timing: TimingEngine,
     last: Instant,
-    drag_origin: Option<(f64, f64, f64, f64)>,
-    pub show_settings: bool,
+    drg: Option<(f64, f64, f64, f64)>,
+    cursor: Option<(f64, f64)>,
+    pub settings: bool,
 }
 
 impl OverlayWindow {
@@ -47,10 +48,10 @@ impl OverlayWindow {
         Self {
             renderer: RSVPRenderer::new(&config),
             input_handler: InputHandler::new(fp, tokens.clone(), &text, config.clone()),
-            reading_state: ReadingState::new(tokens.len(), config.wpm),
-            timing_engine: TimingEngine::new(config.wpm),
+            state: ReadingState::new(tokens.len(), config.wpm),
+            timing: TimingEngine::new(config.wpm),
             config, window: None, pixels: None, tokens,
-            last: Instant::now(), drag_origin: None, show_settings: false,
+            last: Instant::now(), drg: None, cursor: None, settings: false,
         }
     }
 
@@ -60,12 +61,12 @@ impl OverlayWindow {
     }
 
     fn adv(&mut self) {
-        if !matches!(self.reading_state.current_state(), State::Playing { .. }) { return }
-        let Some(idx) = self.reading_state.current_index() else { return };
-        if idx >= self.tokens.len() { return }
-        let t = self.timing_engine.calculate(&self.tokens[idx]);
+        if !matches!(self.state.current_state(), State::Playing { .. }) { return }
+        let Some(i) = self.state.current_index() else { return };
+        if i >= self.tokens.len() { return }
+        let t = self.timing.calculate(&self.tokens[i]);
         if self.last.elapsed() >= t.display_duration + t.pause_after {
-            let _ = self.reading_state.transition(Event::TokenAdvanced);
+            let _ = self.state.transition(Event::TokenAdvanced);
             self.last = Instant::now();
         }
     }
@@ -78,8 +79,7 @@ impl ApplicationHandler for OverlayWindow {
         if let Some(m) = el.primary_monitor() {
             let ls = m.size().to_logical::<f64>(m.scale_factor());
             a = a.with_position(Position::Logical(LogicalPosition::new(
-                ((ls.width - W as f64) / 2.0).max(0.0),
-                ((ls.height - H as f64) / 2.0).max(0.0),
+                ((ls.width - W) / 2.0).max(0.0), ((ls.height - H) / 2.0).max(0.0),
             )));
         }
         let w = el.create_window(a).expect("win");
@@ -88,7 +88,7 @@ impl ApplicationHandler for OverlayWindow {
         let px = Pixels::new(ws.width.max(1), ws.height.max(1), st).expect("px");
         self.pixels = Some(unsafe { std::mem::transmute(px) });
         self.window = Some(w);
-        let _ = self.reading_state.transition(Event::Play);
+        let _ = self.state.transition(Event::Play);
         self.last = Instant::now();
         if let Some(w) = &self.window { w.request_redraw(); }
     }
@@ -97,43 +97,42 @@ impl ApplicationHandler for OverlayWindow {
         match ev {
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::MouseInput { state, button: MouseButton::Left, .. } => {
-                match state {
-                    ElementState::Pressed => {
-                        if let Some(w) = self.window.as_ref() {
-                            self.drag_origin = w.outer_position().ok().map(|p| (p.x as f64, p.y as f64, 0.0, 0.0));
+                if state == ElementState::Pressed {
+                    if let (Some(w), Some(cp)) = (self.window.as_ref(), self.cursor) {
+                        if let Ok(wp) = w.outer_position() {
+                            self.drg = Some((wp.x as f64, wp.y as f64, cp.0, cp.1));
                         }
                     }
-                    ElementState::Released => self.drag_origin = None,
-                    _ => {}
+                } else {
+                    self.drg = None;
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                if let Some((wx, wy, _, _)) = self.drag_origin {
+                self.cursor = Some((position.x, position.y));
+                if let Some((wx, wy, cx, cy)) = self.drg {
                     if let Some(w) = self.window.as_ref() {
-                        let scale = w.scale_factor();
-                        w.set_outer_position(Position::Logical(LogicalPosition::new(
-                            (wx / scale + position.x / scale).max(0.0),
-                            (wy / scale + position.y / scale).max(0.0),
+                        w.set_outer_position(Position::Physical(winit::dpi::PhysicalPosition::new(
+                            (wx + position.x - cx).max(0.0) as i32,
+                            (wy + position.y - cy).max(0.0) as i32,
                         )));
-                        self.drag_origin = None;
                     }
                 }
             }
             WindowEvent::KeyboardInput { event: KeyEvent { logical_key, state: ElementState::Pressed, .. }, .. } => {
                 if let Key::Character(c) = &logical_key {
                     if c == "s" || c == "S" {
-                        self.show_settings = !self.show_settings;
+                        self.settings = !self.settings;
                         if let Some(w) = &self.window { w.request_redraw(); }
                         return;
                     }
                 }
-                let a = self.input_handler.handle_key(&logical_key, &mut self.reading_state);
+                let r = self.input_handler.handle_key(&logical_key, &mut self.state);
                 use ActionResult::*;
-                match a {
+                match r {
                     Continue => {}
                     Exit => el.exit(),
                     Render | PausedAndJumped => { if let Some(w) = &self.window { w.request_redraw(); } }
-                    SpeedChanged(wpm) => { self.timing_engine.set_wpm(wpm); self.renderer.set_wpm(wpm); if let Some(w) = &self.window { w.request_redraw(); } }
+                    SpeedChanged(v) => { self.timing.set_wpm(v); self.renderer.set_wpm(v); if let Some(w) = &self.window { w.request_redraw(); } }
                     Restarted => { self.last = Instant::now(); if let Some(w) = &self.window { w.request_redraw(); } }
                 }
             }
@@ -143,22 +142,22 @@ impl ApplicationHandler for OverlayWindow {
                     let ws = w.inner_size();
                     let pw = ws.width.max(1) as usize;
                     let ph = ws.height.max(1) as usize;
-                    let frame = px.frame_mut();
-                    frame.fill(0);
-                    self.renderer.clear(frame, pw, ph);
-                    if let Some(idx) = self.reading_state.current_index() {
-                        if idx < self.tokens.len() {
-                            let t = &self.tokens[idx];
-                            let paused = matches!(self.reading_state.current_state(), State::Paused { .. });
-                            self.renderer.render_word(frame, pw, ph, &t.word, t.orp_index);
-                            self.renderer.render_progress(frame, pw, ph, idx + 1, self.tokens.len(), paused);
+                    let fb = px.frame_mut();
+                    fb.fill(0);
+                    self.renderer.clear(fb, pw, ph);
+                    if let Some(i) = self.state.current_index() {
+                        if i < self.tokens.len() {
+                            let t = &self.tokens[i];
+                            let p = matches!(self.state.current_state(), State::Paused { .. });
+                            self.renderer.word(fb, pw, ph, &t.word, t.orp_index);
+                            self.renderer.progress(fb, pw, ph, i + 1, self.tokens.len(), p);
                         }
                     }
-                    if self.show_settings {
-                        self.renderer.render_settings(frame, pw, ph, &self.config, self.timing_engine.wpm());
+                    if self.settings {
+                        self.renderer.settings(fb, pw, ph, &self.config, self.timing.wpm());
                     }
                     let _ = px.render();
-                    if matches!(self.reading_state.current_state(), State::Playing { .. }) {
+                    if matches!(self.state.current_state(), State::Playing { .. }) {
                         w.request_redraw();
                     }
                 }
