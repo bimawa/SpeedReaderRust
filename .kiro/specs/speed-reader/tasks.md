@@ -15,35 +15,35 @@
 - **Design**: Tokenizer section
 - **Boundary**: `core/src/tokenizer.rs`
 - **Depends**: —
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 1.2 Core TimingEngine WPM
 - **Requirement**: 4.1
 - **Design**: TimingEngine section
 - **Boundary**: `core/src/timing.rs`
 - **Depends**: 1.1
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 1.3 Core ReadingState machine
 - **Requirement**: 3.1, 3.3
 - **Design**: ReadingState section
 - **Boundary**: `core/src/state.rs`
 - **Depends**: 1.2
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 1.4 Core PositionTracker
 - **Requirement**: 2.2
 - **Design**: PositionTracker section
 - **Boundary**: `core/src/position.rs`
 - **Depends**: —
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 1.5 Core ConfigModel
 - **Requirement**: 4.1, 4.2, 4.3
 - **Design**: ConfigModel section
 - **Boundary**: `core/src/config.rs`
 - **Depends**: —
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ## 2. GUI Application (speed-reader-gui)
 
@@ -52,7 +52,7 @@
 - **Design**: OverlayWindow section
 - **Boundary**: `gui/`
 - **Depends**: 1.1-1.5
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 2.2 GUI RSVPRenderer
 - **Requirement**: 1.1
