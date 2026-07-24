@@ -9,5 +9,6 @@ authors = ["SpeedReader Team"]
 description = "Launch SpeedReader on the current buffer"
 requires_argument = false
 
-[capabilities]
-process:exec = { kind = "process:exec", command = "*", args = ["**"] }
+capabilities = [
+    { kind = "process:exec", command = "*", args = ["**"] },
+]

@@ -29,35 +29,26 @@ fn fill_rect(buf: &mut [u8], pw: usize, ph: usize, color: [u8; 4], x: i32, y: i3
     }
 }
 
-fn draw_glyph(buf: &mut [u8], pw: usize, ph: usize, color: [u8; 4], outline: ab_glyph::OutlinedGlyph, offset_x: f32, offset_y: f32) {
-    outline.draw(|dx, dy, coverage| {
-        let px = offset_x as i32 + dx as i32;
-        let py = offset_y as i32 + dy as i32;
-        if px >= 0 && px < pw as i32 && py >= 0 && py < ph as i32 {
-            let idx = (py as usize * pw + px as usize) * 4;
-            blend_pixel(buf, idx, color, (coverage * 255.0) as u8);
-        }
-    });
-}
-
-fn draw_text(
+fn draw_text_raw(
     buf: &mut [u8], pw: usize, ph: usize,
     font: &FontArc, font_size: f32, color: [u8; 4],
     text: &str, start_x: f32, baseline_y: f32,
-    orp_highlight: Option<(usize, [u8; 4])>,
 ) {
     let scaled = font.as_scaled(PxScale::from(font_size));
     let mut cur_x = start_x;
-    for (i, c) in text.chars().enumerate() {
-        let clr = match orp_highlight {
-            Some((idx, accent)) if i == idx => accent,
-            _ => color,
-        };
+    for c in text.chars() {
         let glyph = scaled.scaled_glyph(c);
         let advance = scaled.h_advance(glyph.id);
         if let Some(outline) = scaled.outline_glyph(glyph) {
             let bb = outline.px_bounds();
-            draw_glyph(buf, pw, ph, clr, outline, cur_x + bb.min.x, baseline_y + bb.min.y);
+            outline.draw(|dx, dy, coverage| {
+                let px = (cur_x + bb.min.x) as i32 + dx as i32;
+                let py = (baseline_y + bb.min.y) as i32 + dy as i32;
+                if px >= 0 && px < pw as i32 && py >= 0 && py < ph as i32 {
+                    let idx = (py as usize * pw + px as usize) * 4;
+                    blend_pixel(buf, idx, color, (coverage * 255.0) as u8);
+                }
+            });
         }
         cur_x += advance;
     }
@@ -85,25 +76,102 @@ impl RSVPRenderer {
     pub fn current_wpm(&self) -> u32 { self.wpm }
 
     pub fn clear(&self, buf: &mut [u8], pw: usize, ph: usize) {
-        let bg = hex_to_rgba(&self.colors.bg);
-        fill_rect(buf, pw, ph, bg, 0, 0, pw as i32, ph as i32);
+        fill_rect(buf, pw, ph, hex_to_rgba(&self.colors.bg), 0, 0, pw as i32, ph as i32);
     }
 
     pub fn render_word(&self, buf: &mut [u8], pw: usize, ph: usize, word: &str, orp_index: usize) {
         let tc = hex_to_rgba(&self.colors.text);
         let ac = hex_to_rgba(&self.colors.accent);
         let scaled = self.font.as_scaled(PxScale::from(self.font_size));
-
         let before: f32 = word.chars().take(orp_index).map(|c| scaled.h_advance(scaled.scaled_glyph(c).id)).sum();
         let cx = pw as f32 / 2.0;
         let sx = cx - before;
         let by = ph as f32 / 2.0 + self.font_size / 3.0;
-        draw_text(buf, pw, ph, &self.font, self.font_size, tc, word, sx, by, Some((orp_index, ac)));
+
+        let mut cur_x = sx;
+        for (i, c) in word.chars().enumerate() {
+            let clr = if i == orp_index { ac } else { tc };
+            let glyph = scaled.scaled_glyph(c);
+            let advance = scaled.h_advance(glyph.id);
+            if let Some(outline) = scaled.outline_glyph(glyph) {
+                let bb = outline.px_bounds();
+                outline.draw(|dx, dy, coverage| {
+                    let px = (cur_x + bb.min.x) as i32 + dx as i32;
+                    let py = (by + bb.min.y) as i32 + dy as i32;
+                    if px >= 0 && px < pw as i32 && py >= 0 && py < ph as i32 {
+                        let idx = (py as usize * pw + px as usize) * 4;
+                        blend_pixel(buf, idx, clr, (coverage * 255.0) as u8);
+                    }
+                });
+            }
+            cur_x += advance;
+        }
     }
 
-    pub fn render_progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize) {
-        let text = format!("{}/{}  {} WPM", cur, total, self.wpm);
+    pub fn render_progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize, paused: bool) {
         let tc = hex_to_rgba(&self.colors.text);
-        draw_text(buf, pw, ph, &self.font, self.font_size * 0.35, tc, &text, 10.0, ph as f32 - 10.0, None);
+        let ac = hex_to_rgba(&self.colors.accent);
+        let sz = self.font_size * 0.3;
+
+        // Play/pause indicator — top right
+        let indicator = if paused { "⏸ PAUSED" } else { "▶" };
+        let indicator_color = if paused { ac } else { tc };
+        let ind_w = indicator.len() as f32 * sz * 0.6;
+        draw_text_raw(buf, pw, ph, &self.font, sz, indicator_color, indicator,
+            pw as f32 - ind_w - 10.0, 20.0 + sz);
+
+        // Speed — top left
+        let speed_text = format!("{} WPM", self.wpm);
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &speed_text, 10.0, 20.0 + sz);
+
+        // Progress — bottom left
+        let prog_text = format!("{}/{}", cur, total);
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &prog_text, 10.0, ph as f32 - 10.0);
+
+        // Controls hint — bottom right
+        let hint = "⏎Pause  ↑↓Speed  ←→Skip  SSettings  EscExit";
+        let hint_sz = sz * 0.8;
+        draw_text_raw(buf, pw, ph, &self.font, hint_sz, tc, hint,
+            10.0, ph as f32 - 10.0 - hint_sz - 4.0);
+    }
+
+    pub fn render_settings(&self, buf: &mut [u8], pw: usize, ph: usize, config: &ConfigModel, current_wpm: u32) {
+        let bg = [40, 40, 40, 230]; // semi-transparent dark
+        let tc = hex_to_rgba(&self.colors.text);
+        let ac = hex_to_rgba(&self.colors.accent);
+        let sz = self.font_size * 0.35;
+
+        // Semi-transparent overlay
+        fill_rect(buf, pw, ph, bg, 0, 0, pw as i32, ph as i32);
+
+        let mut y = 40.0f32;
+        let line_h = sz * 1.8;
+
+        // Title
+        draw_text_raw(buf, pw, ph, &self.font, sz * 1.3, ac, "Settings", 20.0, y);
+        y += line_h * 1.5;
+
+        // WPM
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &format!("Speed: {} WPM  (↑↓ to change)", current_wpm), 20.0, y);
+        y += line_h;
+
+        // Theme
+        let theme_str = format!("Theme: {}  (T to toggle)", match config.theme_mode {
+            speed_reader_core::config::ThemeMode::Dark => "Dark",
+            speed_reader_core::config::ThemeMode::Light => "Light",
+        });
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &theme_str, 20.0, y);
+        y += line_h;
+
+        // Skip amount
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &format!("Skip: {} words", config.skip_amount), 20.0, y);
+        y += line_h;
+
+        // Font size
+        draw_text_raw(buf, pw, ph, &self.font, sz, tc, &format!("Font: {:.0}px", config.font_size), 20.0, y);
+        y += line_h * 1.5;
+
+        // Close hint
+        draw_text_raw(buf, pw, ph, &self.font, sz * 0.8, ac, "Press S to close settings", 20.0, y);
     }
 }
