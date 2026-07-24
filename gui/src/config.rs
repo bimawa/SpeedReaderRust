@@ -3,8 +3,6 @@ use std::path::PathBuf;
 
 use speed_reader_core::config::ConfigModel;
 
-use crate::Cli;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConfigError {
     IoError(String),
@@ -60,10 +58,21 @@ impl ConfigPersistence {
         Ok(())
     }
 
-    pub fn apply_cli_overrides(config: &mut ConfigModel, args: &Cli) {
-        config.wpm = args.wpm;
-        config.theme_mode = args.theme.clone().into();
-        config.font_size = args.font_size;
+    pub fn apply_cli_overrides(
+        config: &mut ConfigModel,
+        wpm: Option<u32>,
+        theme_mode: Option<speed_reader_core::config::ThemeMode>,
+        font_size: Option<f32>,
+    ) {
+        if let Some(wpm) = wpm {
+            config.wpm = wpm;
+        }
+        if let Some(theme_mode) = theme_mode {
+            config.theme_mode = theme_mode;
+        }
+        if let Some(font_size) = font_size {
+            config.font_size = font_size;
+        }
     }
 }
 
@@ -120,40 +129,30 @@ mod tests {
     #[test]
     fn test_apply_cli_overrides_wpm() {
         let mut config = ConfigModel::default();
-        let args = Cli {
-            file_path: None,
-            wpm: 600,
-            theme: crate::ThemeArg::Dark,
-            font_size: 48.0,
-        };
-        ConfigPersistence::apply_cli_overrides(&mut config, &args);
+        ConfigPersistence::apply_cli_overrides(&mut config, Some(600), Some(ThemeMode::Dark), Some(48.0));
         assert_eq!(config.wpm, 600);
     }
 
     #[test]
     fn test_apply_cli_overrides_theme() {
         let mut config = ConfigModel::default();
-        let args = Cli {
-            file_path: None,
-            wpm: 300,
-            theme: crate::ThemeArg::Light,
-            font_size: 48.0,
-        };
-        ConfigPersistence::apply_cli_overrides(&mut config, &args);
+        ConfigPersistence::apply_cli_overrides(&mut config, Some(300), Some(ThemeMode::Light), Some(48.0));
         assert_eq!(config.theme_mode, ThemeMode::Light);
     }
 
     #[test]
     fn test_apply_cli_overrides_font_size() {
         let mut config = ConfigModel::default();
-        let args = Cli {
-            file_path: None,
-            wpm: 300,
-            theme: crate::ThemeArg::Dark,
-            font_size: 72.0,
-        };
-        ConfigPersistence::apply_cli_overrides(&mut config, &args);
+        ConfigPersistence::apply_cli_overrides(&mut config, Some(300), Some(ThemeMode::Dark), Some(72.0));
         assert_eq!(config.font_size, 72.0);
+    }
+
+    #[test]
+    fn test_apply_cli_overrides_none_preserves_defaults() {
+        let mut config = ConfigModel::default();
+        config.wpm = 500;
+        ConfigPersistence::apply_cli_overrides(&mut config, None, None, None);
+        assert_eq!(config.wpm, 500);
     }
 
     #[test]

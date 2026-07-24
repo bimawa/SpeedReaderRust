@@ -1,6 +1,6 @@
 use speed_reader_core::config::ConfigModel;
 use skia_safe::{
-    Canvas, Color, Font, FontMgr, FontStyle, Paint, Point, Rect, RRect, Surface, TextBlob,
+    Canvas, Color, Font, FontMgr, FontStyle, Paint, Point, Rect, RRect, TextBlob,
 };
 
 pub struct RSVPRenderer {
@@ -34,6 +34,9 @@ impl RSVPRenderer {
             accent_color: parse_hex_color(&colors.accent),
             wpm: config.wpm,
         }
+    }
+    pub fn set_wpm(&mut self, wpm: u32) {
+        self.wpm = wpm;
     }
 
     pub fn clear(&self, canvas: &Canvas, width: f32, height: f32) {
@@ -138,7 +141,7 @@ impl RSVPRenderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use skia_safe::surfaces;
+    use skia_safe::{surfaces, Surface};
 
     fn make_surface(w: i32, h: i32) -> Surface {
         surfaces::raster_n32_premul((w, h)).unwrap()

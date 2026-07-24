@@ -17,6 +17,10 @@ impl TimingEngine {
         self.wpm
     }
 
+    pub fn set_wpm(&mut self, wpm: u32) {
+        self.wpm = wpm.clamp(50, 1000);
+    }
+
     /// Возвращает длительность показа слова и паузу после него.
     pub fn calculate(&self, token: &Token) -> TimedToken {
         let word_len = token.word.chars().count().max(1);

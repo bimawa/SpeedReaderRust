@@ -1,4 +1,3 @@
-use crate::timing::TimedToken;
 
 /// Конечный автомат чтения.
 /// Requirement: 3.1, 3.3, Design: ReadingState section

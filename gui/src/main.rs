@@ -1,19 +1,22 @@
+use std::io::Read;
+
 use clap::Parser;
 use speed_reader_core::config::ConfigModel;
+use speed_reader_core::tokenizer::tokenize;
 
 #[derive(Parser, Debug)]
 #[command(name = "speed-reader", about = "RSVP speed reader overlay for Zed")]
 pub struct Cli {
     pub file_path: Option<String>,
 
-    #[arg(long, default_value_t = 300)]
-    pub wpm: u32,
+    #[arg(long)]
+    pub wpm: Option<u32>,
 
-    #[arg(long, value_enum, default_value_t = ThemeArg::Dark)]
-    pub theme: ThemeArg,
+    #[arg(long, value_enum)]
+    pub theme: Option<ThemeArg>,
 
-    #[arg(long, default_value_t = 48.0)]
-    pub font_size: f32,
+    #[arg(long)]
+    pub font_size: Option<f32>,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
@@ -34,19 +37,51 @@ impl From<ThemeArg> for speed_reader_core::config::ThemeMode {
 impl Cli {
     pub fn to_config(&self) -> ConfigModel {
         let mut config = ConfigModel::default();
-        config.wpm = self.wpm;
-        config.theme_mode = self.theme.clone().into();
-        config.font_size = self.font_size;
+        if let Some(wpm) = self.wpm {
+            config.wpm = wpm;
+        }
+        if let Some(theme) = &self.theme {
+            config.theme_mode = theme.clone().into();
+        }
+        if let Some(font_size) = self.font_size {
+            config.font_size = font_size;
+        }
         config
     }
 }
 
 pub fn run() -> Result<(), String> {
     let cli = Cli::parse();
-    let config = cli.to_config();
+
+    let mut config = config::ConfigPersistence::load().unwrap_or_else(|_| cli.to_config());
+    config::ConfigPersistence::apply_cli_overrides(
+        &mut config,
+        cli.wpm,
+        cli.theme.as_ref().map(|t| t.clone().into()),
+        cli.font_size,
+    );
     config.validate().map_err(|e| e.join(", "))?;
 
-    let overlay = overlay::OverlayWindow::new(cli.file_path, config);
+    let text = match &cli.file_path {
+        Some(path) => std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read file '{path}': {e}"))?,
+        None => {
+            let mut buf = String::new();
+            std::io::stdin()
+                .read_to_string(&mut buf)
+                .map_err(|e| format!("Failed to read stdin: {e}"))?;
+            buf
+        }
+    };
+
+    let tokens =
+        tokenize(&text).map_err(|e| format!("Failed to tokenize text: {e:?}"))?;
+
+    if tokens.is_empty() {
+        return Err("No tokens to display".into());
+    }
+
+    let overlay = overlay::OverlayWindow::new(cli.file_path, config, text, tokens);
     overlay.run()
 }
 
@@ -82,43 +117,43 @@ mod tests {
     #[test]
     fn cli_wpm_override() {
         let args = Cli::try_parse_from(["speed-reader", "--wpm", "500", "file.txt"]).unwrap();
-        assert_eq!(args.wpm, 500);
+        assert_eq!(args.wpm, Some(500));
     }
 
     #[test]
     fn cli_wpm_default() {
         let args = Cli::try_parse_from(["speed-reader"]).unwrap();
-        assert_eq!(args.wpm, 300);
+        assert!(args.wpm.is_none());
     }
 
     #[test]
     fn cli_theme_dark() {
         let args = Cli::try_parse_from(["speed-reader", "--theme", "dark"]).unwrap();
-        assert_eq!(args.theme, ThemeArg::Dark);
+        assert_eq!(args.theme, Some(ThemeArg::Dark));
     }
 
     #[test]
     fn cli_theme_light() {
         let args = Cli::try_parse_from(["speed-reader", "--theme", "light"]).unwrap();
-        assert_eq!(args.theme, ThemeArg::Light);
+        assert_eq!(args.theme, Some(ThemeArg::Light));
     }
 
     #[test]
     fn cli_theme_default() {
         let args = Cli::try_parse_from(["speed-reader"]).unwrap();
-        assert_eq!(args.theme, ThemeArg::Dark);
+        assert!(args.theme.is_none());
     }
 
     #[test]
     fn cli_font_size() {
         let args = Cli::try_parse_from(["speed-reader", "--font-size", "64.0"]).unwrap();
-        assert_eq!(args.font_size, 64.0);
+        assert_eq!(args.font_size, Some(64.0));
     }
 
     #[test]
     fn cli_font_size_default() {
         let args = Cli::try_parse_from(["speed-reader"]).unwrap();
-        assert_eq!(args.font_size, 48.0);
+        assert!(args.font_size.is_none());
     }
 
     #[test]
@@ -135,9 +170,9 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(args.file_path.as_deref(), Some("chapter.txt"));
-        assert_eq!(args.wpm, 400);
-        assert_eq!(args.theme, ThemeArg::Light);
-        assert_eq!(args.font_size, 72.0);
+        assert_eq!(args.wpm, Some(400));
+        assert_eq!(args.theme, Some(ThemeArg::Light));
+        assert_eq!(args.font_size, Some(72.0));
     }
 
     #[test]
