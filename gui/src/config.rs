@@ -39,9 +39,12 @@ impl ConfigPersistence {
         Ok(config)
     }
 
+#[allow(dead_code)]
     pub fn save(config: &ConfigModel) -> Result<(), ConfigError> {
         Self::save_to(config, &Self::config_path())
     }
+
+#[allow(dead_code)]
 
     pub fn save_to(config: &ConfigModel, path: &std::path::Path) -> Result<(), ConfigError> {
         if let Some(parent) = path.parent() {
