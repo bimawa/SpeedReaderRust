@@ -59,21 +59,21 @@
 - **Design**: RSVPRenderer section
 - **Boundary**: `gui/src/renderer.rs`
 - **Depends**: 2.1
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 2.3 GUI InputHandler
 - **Requirement**: 3.1, 3.2, 3.3, 3.2
 - **Design**: InputHandler section
 - **Boundary**: `gui/src/input.rs`
 - **Depends**: 2.1
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 2.4 GUI Config persistence
 - **Requirement**: 4.1, 4.2, 4.3
 - **Design**: ConfigPersistence section
 - **Boundary**: `gui/src/config.rs`
 - **Depends**: 2.1
-- **Status**: `[-]`
+- **Status**: `[x]`
 
 ### 2.5 GUI Overlay controller + integration
 - **Requirement**: 2.1, 2.2, 3.2

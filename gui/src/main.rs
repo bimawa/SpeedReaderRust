@@ -53,6 +53,7 @@ pub fn run() -> Result<(), String> {
 mod overlay;
 mod renderer;
 mod input;
+mod config;
 
 fn main() {
     if let Err(e) = run() {
