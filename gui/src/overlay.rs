@@ -38,7 +38,7 @@ pub struct OverlayWindow {
     tokens: Vec<Token>,
     timing: TimingEngine,
     last: Instant,
-    drg: Option<(f64, f64, f64, f64)>,
+    drg: Option<(f64, f64)>,
     cursor: Option<(f64, f64)>,
     pub settings: bool,
 }
@@ -84,8 +84,10 @@ impl ApplicationHandler for OverlayWindow {
         }
         let w = el.create_window(a).expect("win");
         let ws = w.inner_size();
-        let st = pixels::SurfaceTexture::new(ws.width.max(1), ws.height.max(1), &w);
-        let px = Pixels::new(ws.width.max(1), ws.height.max(1), st).expect("px");
+        let pw = ws.width.max(1);
+        let ph = ws.height.max(1);
+        let st = pixels::SurfaceTexture::new(pw, ph, &w);
+        let px = Pixels::new(pw, ph, st).expect("px");
         self.pixels = Some(unsafe { std::mem::transmute(px) });
         self.window = Some(w);
         let _ = self.state.transition(Event::Play);
@@ -95,28 +97,33 @@ impl ApplicationHandler for OverlayWindow {
 
     fn window_event(&mut self, el: &ActiveEventLoop, _: WindowId, ev: WindowEvent) {
         match ev {
+            WindowEvent::Resized(size) => {
+                if let Some(px) = self.pixels.as_mut() {
+                    let _ = px.resize_surface(size.width.max(1), size.height.max(1));
+                }
+                if let Some(w) = &self.window { w.request_redraw(); }
+            }
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::MouseInput { state, button: MouseButton::Left, .. } => {
                 if state == ElementState::Pressed {
-                    if let (Some(w), Some(cp)) = (self.window.as_ref(), self.cursor) {
-                        if let Ok(wp) = w.outer_position() {
-                            self.drg = Some((wp.x as f64, wp.y as f64, cp.0, cp.1));
-                        }
-                    }
+                    self.drg = self.cursor;
                 } else {
                     self.drg = None;
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.cursor = Some((position.x, position.y));
-                if let Some((wx, wy, cx, cy)) = self.drg {
+                let new = (position.x, position.y);
+                if let Some(last) = self.drg {
                     if let Some(w) = self.window.as_ref() {
-                        w.set_outer_position(Position::Physical(winit::dpi::PhysicalPosition::new(
-                            (wx + position.x - cx).max(0.0) as i32,
-                            (wy + position.y - cy).max(0.0) as i32,
-                        )));
+                        if let Ok(pos) = w.outer_position() {
+                            w.set_outer_position(Position::Physical(winit::dpi::PhysicalPosition::new(
+                                (pos.x as f64 + new.0 - last.0).max(0.0) as i32,
+                                (pos.y as f64 + new.1 - last.1).max(0.0) as i32,
+                            )));
+                        }
                     }
                 }
+                self.cursor = Some(new);
             }
             WindowEvent::KeyboardInput { event: KeyEvent { logical_key, state: ElementState::Pressed, .. }, .. } => {
                 if let Key::Character(c) = &logical_key {

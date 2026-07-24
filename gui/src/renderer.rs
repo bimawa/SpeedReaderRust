@@ -9,6 +9,7 @@ fn hex(c: &str) -> [u8; 4] {
 }
 
 fn blend(buf: &mut [u8], i: usize, c: [u8; 4], a: u8) {
+    if i + 3 >= buf.len() { return; }
     let a = a as u32; let ia = 255 - a;
     buf[i] = ((c[0] as u32 * a + buf[i] as u32 * ia) / 255) as u8;
     buf[i+1] = ((c[1] as u32 * a + buf[i+1] as u32 * ia) / 255) as u8;
