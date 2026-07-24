@@ -70,6 +70,34 @@ impl OverlayWindow {
             self.last = Instant::now();
         }
     }
+
+    fn on_key(&mut self, key: &Key, el: &ActiveEventLoop) {
+        if let Key::Character(c) = key {
+            if c == "s" || c == "S" {
+                self.settings = !self.settings;
+                if let Some(w) = &self.window { w.request_redraw(); }
+                return;
+            }
+        }
+        let r = self.input_handler.handle_key(key, &mut self.state);
+        match r {
+            ActionResult::Continue => {}
+            ActionResult::Exit => el.exit(),
+            ActionResult::Render | ActionResult::PausedAndJumped => {
+                self.last = Instant::now();
+                if let Some(w) = &self.window { w.request_redraw(); }
+            }
+            ActionResult::SpeedChanged(v) => {
+                self.timing.set_wpm(v); self.renderer.set_wpm(v);
+                self.last = Instant::now();
+                if let Some(w) = &self.window { w.request_redraw(); }
+            }
+            ActionResult::Restarted => {
+                self.last = Instant::now();
+                if let Some(w) = &self.window { w.request_redraw(); }
+            }
+        }
+    }
 }
 
 impl ApplicationHandler for OverlayWindow {
@@ -84,10 +112,8 @@ impl ApplicationHandler for OverlayWindow {
         }
         let w = el.create_window(a).expect("win");
         let ws = w.inner_size();
-        let pw = ws.width.max(1);
-        let ph = ws.height.max(1);
-        let st = pixels::SurfaceTexture::new(pw, ph, &w);
-        let px = Pixels::new(pw, ph, st).expect("px");
+        let st = pixels::SurfaceTexture::new(ws.width.max(1), ws.height.max(1), &w);
+        let px = Pixels::new(ws.width.max(1), ws.height.max(1), st).expect("px");
         self.pixels = Some(unsafe { std::mem::transmute(px) });
         self.window = Some(w);
         let _ = self.state.transition(Event::Play);
@@ -105,43 +131,24 @@ impl ApplicationHandler for OverlayWindow {
             }
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::MouseInput { state, button: MouseButton::Left, .. } => {
-                if state == ElementState::Pressed {
-                    self.drg = self.cursor;
-                } else {
-                    self.drg = None;
-                }
+                self.drg = if state == ElementState::Pressed { self.cursor } else { None };
             }
             WindowEvent::CursorMoved { position, .. } => {
-                let new = (position.x, position.y);
+                let pt = (position.x, position.y);
                 if let Some(last) = self.drg {
                     if let Some(w) = self.window.as_ref() {
                         if let Ok(pos) = w.outer_position() {
                             w.set_outer_position(Position::Physical(winit::dpi::PhysicalPosition::new(
-                                (pos.x as f64 + new.0 - last.0).max(0.0) as i32,
-                                (pos.y as f64 + new.1 - last.1).max(0.0) as i32,
+                                (pos.x as f64 + pt.0 - last.0).max(0.0) as i32,
+                                (pos.y as f64 + pt.1 - last.1).max(0.0) as i32,
                             )));
                         }
                     }
                 }
-                self.cursor = Some(new);
+                self.cursor = Some(pt);
             }
             WindowEvent::KeyboardInput { event: KeyEvent { logical_key, state: ElementState::Pressed, .. }, .. } => {
-                if let Key::Character(c) = &logical_key {
-                    if c == "s" || c == "S" {
-                        self.settings = !self.settings;
-                        if let Some(w) = &self.window { w.request_redraw(); }
-                        return;
-                    }
-                }
-                let r = self.input_handler.handle_key(&logical_key, &mut self.state);
-                use ActionResult::*;
-                match r {
-                    Continue => {}
-                    Exit => el.exit(),
-                    Render | PausedAndJumped => { if let Some(w) = &self.window { w.request_redraw(); } }
-                    SpeedChanged(v) => { self.timing.set_wpm(v); self.renderer.set_wpm(v); if let Some(w) = &self.window { w.request_redraw(); } }
-                    Restarted => { self.last = Instant::now(); if let Some(w) = &self.window { w.request_redraw(); } }
-                }
+                self.on_key(&logical_key, el);
             }
             WindowEvent::RedrawRequested => {
                 self.adv();
