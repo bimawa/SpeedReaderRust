@@ -10,56 +10,58 @@ impl zed::Extension for SpeedReaderExtension {
     fn run_slash_command(
         &self,
         _command: zed::SlashCommand,
-        _args: Vec<String>,
+        args: Vec<String>,
         worktree: Option<&zed::Worktree>,
     ) -> Result<zed::SlashCommandOutput, String> {
-        // Get the worktree
-        let worktree = worktree.ok_or("No worktree available. Open a file first.")?;
+        let wt = worktree.ok_or("Open a project first")?;
 
-        // Try to find the speed-reader binary
-        let binary_info = match worktree.which("speed-reader") {
-            Some(path) => format!("✅ `speed-reader` found at: `{path}`\n\n"),
-            None => "⚠️  `speed-reader` binary not found in PATH.\n   Install with: `cargo install speed-reader`\n\n".into(),
+        // Determine which file to read
+        let file_path = if args.is_empty() {
+            // Auto-detect: find the biggest text file in the project
+            let candidates = ["README.md", "Cargo.toml", "package.json", "src/lib.rs", "src/main.rs"];
+            let mut found = None;
+            for c in &candidates {
+                if wt.read_text_file(c).is_ok() {
+                    found = Some(c.to_string());
+                    break;
+                }
+            }
+            found.ok_or("No auto-detected file. Provide a path: `/speed-reader src/main.rs`")?
+        } else {
+            args.into_iter().next().unwrap()
         };
 
-        // Read the root path and list files
-        let _root = worktree.root_path();
-        let mut total_words = 0usize;
-        let mut file_list = String::new();
+        // Read the file content
+        let content = wt.read_text_file(&file_path)
+            .map_err(|e| format!("Can't read `{file_path}`: {e}"))?;
 
-        // For now, try to read a few common file patterns
-        for candidate in &["README.md", "src/lib.rs", "Cargo.toml"] {
-            match worktree.read_text_file(candidate) {
-                Ok(content) => {
-                    let words = content.split_whitespace().count();
-                    total_words += words;
-                    file_list.push_str(&format!("  - `{candidate}`: {words} words\n"));
+        // Get file stats
+        let word_count = content.split_whitespace().count();
+        let char_count = content.len();
+
+        // Try to find and launch speed-reader binary
+        let launch_msg = match wt.which("speed-reader") {
+            Some(bin_path) => {
+                let root = wt.root_path();
+                let abs_path = format!("{}/{}", root.trim_end_matches('/'), file_path);
+                // Launch in background via shell detach
+                let cmd = format!("{} {} &", bin_path, abs_path);
+                match zed::Command::new("sh").args(["-c", &cmd]).output() {
+                    Ok(_) => format!("✅ SpeedReader launched on `{}`\n\n", file_path),
+                    Err(e) => format!("⚠️  Launch failed: {e}\n\n"),
                 }
-                Err(_) => continue,
             }
-        }
-
-        if file_list.is_empty() {
-            file_list = "  (no files auto-detected — select text and copy to SpeedReader)\n".into();
-        }
-
-        // Calculate estimated reading time
-        let est_secs = if total_words > 0 {
-            (total_words as f64 / 300.0 * 60.0) as u64
-        } else {
-            0
+            None => {
+                "⚠️  `speed-reader` not installed.\nInstall: `cargo install speed-reader`\n\n".to_string()
+            }
         };
 
         let output = format!(
             "## SpeedReader\n\n\
-             {binary_info}\
-             Files:\n{file_list}\n\
-             **Total**: ~{total_words} words (~{est_secs}s at 300 WPM)\n\n\
-             **Usage**:\n\
-             1. Select text in your buffer and copy it (Cmd+C)\n\
-             2. Run `speed-reader` in your terminal\n\
-             3. Press `Space` to pause — Zed will jump to the reading position\n\
-             4. Press `Esc` to exit"
+             {launch_msg}\
+             File: `{file_path}` — ~{word_count} words ({char_count} chars)\n\n\
+             **Controls**: Space=pause+focus, Esc=exit, ←→=skip, ↑↓=speed\n\n\
+             Use `/speed-reader <path>` to read a specific file."
         );
 
         Ok(zed::SlashCommandOutput {

@@ -8,3 +8,6 @@ authors = ["SpeedReader Team"]
 [slash_commands.speed-reader]
 description = "Launch SpeedReader on the current buffer"
 requires_argument = false
+
+[capabilities]
+process:exec = { kind = "process:exec", command = "*", args = ["**"] }
