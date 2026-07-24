@@ -58,7 +58,6 @@ impl RSVPRenderer {
         Self { fs: cfg.font_size, co: cfg.current_colors().clone(), wpm: cfg.wpm, font: FontArc::try_from_slice(fd).expect("f") }
     }
     pub fn set_wpm(&mut self, v: u32) { self.wpm = v; }
-    pub fn current_wpm(&self) -> u32 { self.wpm }
 
     pub fn clear(&self, buf: &mut [u8], pw: usize, ph: usize) {
         rect(buf, pw, ph, hex(&self.co.bg), 0, 0, pw as i32, ph as i32);

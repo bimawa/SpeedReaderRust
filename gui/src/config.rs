@@ -39,24 +39,6 @@ impl ConfigPersistence {
         Ok(config)
     }
 
-    pub fn save(config: &ConfigModel) -> Result<(), ConfigError> {
-        Self::save_to(config, &Self::config_path())
-    }
-
-    pub fn save_to(config: &ConfigModel, path: &std::path::Path) -> Result<(), ConfigError> {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| ConfigError::IoError(format!("Failed to create config dir: {}", e)))?;
-        }
-
-        let json = serde_json::to_string_pretty(config)
-            .map_err(|e| ConfigError::IoError(format!("Failed to serialize config: {}", e)))?;
-
-        fs::write(path, json)
-            .map_err(|e| ConfigError::IoError(format!("Failed to write config: {}", e)))?;
-
-        Ok(())
-    }
 
     pub fn apply_cli_overrides(
         config: &mut ConfigModel,
