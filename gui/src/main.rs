@@ -51,6 +51,7 @@ pub fn run() -> Result<(), String> {
 }
 
 mod overlay;
+mod renderer;
 
 fn main() {
     if let Err(e) = run() {
