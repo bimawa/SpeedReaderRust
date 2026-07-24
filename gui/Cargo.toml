@@ -8,10 +8,11 @@ license.workspace = true
 [dependencies]
 speed-reader-core = { path = "../core" }
 winit = "0.30"
-skia-safe = "0.78"
 clap = { version = "4", features = ["derive"] }
 serde.workspace = true
 serde_json.workspace = true
+pixels = "0.15.0"
+ab_glyph = "0.2.32"
 
 [dev-dependencies]
 tempfile = "3"
