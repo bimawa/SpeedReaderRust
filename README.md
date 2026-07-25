@@ -1,62 +1,48 @@
-# SpeedReader for Zed
+# SpeedReaderRust
 
-RSVP-оверлей для быстрого чтения в Zed editor. На Space — пауза и прыжок на позицию в редакторе.
+RSVP (Rapid Serial Visual Presentation) reading overlay for Zed editor. Displays text word by word with highlighted center letter (ORP). Press Space to pause and jump to the exact reading position in the editor.
 
-## Быстрый старт
-
-### 1. Собери и установи GUI-бинарник
+## Install
 
 ```sh
-cargo build --release -p speed-reader-gui
-cp target/release/speed-reader-gui /usr/local/bin/speed-reader
-# или: cargo install --path gui
+cargo build --release -p speed-reader
+cp target/release/speed-reader /usr/local/bin/
 ```
 
-### 2. Установи расширение Zed
+## Usage in Zed
 
-```sh
-Cmd+Shift+P → "zed: install dev extension" → выбери папку zed-ext/
-```
+Open any file → `Cmd+Shift+P` → `SpeedReader: Read current file`.
 
-### 3. Используй
+Or set a keybinding in `~/.config/zed/keybindings.json`:
 
-  {
-    "context": "Editor",
-    "bindings": {
-      "cmd-shift-r": ["task::Spawn", { "task_name": "SpeedReader: Read current file" }]
-    }
+```json
+{
+  "context": "Editor",
+  "bindings": {
+    "cmd-shift-r": ["task::Spawn", { "task_name": "SpeedReader: Read current file" }]
   }
-[
-  {
-    "context": "Editor",
-    "bindings": {
-      "cmd-shift-r": "task::Spawn",
-      "cmd-shift-r": ["task::Spawn", { "task_name": "SpeedReader: Read current file" }]
-    }
-  }
-]
+}
 ```
 
-Теперь по `Cmd+Shift+R` сразу открывается SpeedReader с текущим файлом.
+Then `Cmd+Shift+R` from any buffer.
 
-Или по старинке: выдели текст → `Cmd+C` → в терминале `speed-reader`.
+## Controls
 
-## Управление
+| Key | Action |
+|-----|--------|
+| `Space` | Pause + jump to position in Zed |
+| `Space` (again) | Resume |
+| `Esc` | Close overlay |
+| `←` `→` | Skip words |
+| `↑` `↓` | Speed ±10 WPM |
+| `S` | Settings panel |
+| Mouse drag | Move overlay window |
 
-| Клавиша | Действие |
-|---------|----------|
-| `Space` | Пауза + прыжок на позицию в Zed |
-| `Space` (ещё) | Продолжить чтение |
-| `Esc` | Закрыть оверлей |
-| `←` `→` | Перемотка |
-| `↑` `↓` | Скорость ±10 WPM |
-| `S` | Настройки |
-| `ЛКМ drag` | Перетащить окно |
-
-## Структура
+## Project structure
 
 ```
-core/   RSVP-движок (токены, ORP, тайминг, позиция, конфиг)
-gui/    Оверлейное окно (winit + ab_glyph)
-zed-ext/  Расширение Zed (WASM)
+core/     RSVP engine (Rust library — tokenizer, ORP, timing, state machine, config)
+gui/      Desktop overlay (winit + ab_glyph + pixels)
+
+zed-ext/  Optional Zed WASM extension (not needed for basic usage)
 ```

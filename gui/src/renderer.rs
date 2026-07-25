@@ -92,7 +92,7 @@ impl RSVPRenderer {
     pub fn progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize, paused: bool) {
         let tc = hex(&self.co.text);
         let ac = hex(&self.co.accent);
-        let sz = self.fs * 0.3;
+        let sz = self.fs * 0.45;
 
         // Status indicator - top right
         let status = if paused { "[PAUSED]" } else { "[PLAY]" };
@@ -108,21 +108,20 @@ impl RSVPRenderer {
 
         // Controls - bottom, centered
         let hints = "Space=Pause  arrows=Skip  Up/Down=Speed  S=Settings  Esc=Exit";
-        let hw = hints.len() as f32 * sz * 0.4;
-        text(buf, pw, ph, &self.font, sz * 0.75, tc, hints,
-            (pw as f32 - hw) / 2.0, ph as f32 - 8.0 - sz * 0.75);
+        let hw = hints.len() as f32 * sz * 0.38;
+        text(buf, pw, ph, &self.font, sz, tc, hints,
+            (pw as f32 - hw) / 2.0, ph as f32 - 8.0);
     }
 
     pub fn settings(&self, buf: &mut [u8], pw: usize, ph: usize, cfg: &ConfigModel, wpm: u32) {
         let bg = [40, 40, 40, 230];
         let tc = hex(&self.co.text);
         let ac = hex(&self.co.accent);
-        let sz = self.fs * 0.35;
+        let sz = self.fs * 0.45;
         rect(buf, pw, ph, bg, 0, 0, pw as i32, ph as i32);
         let mut y = 40.0;
         let lh = sz * 1.8;
-        text(buf, pw, ph, &self.font, sz * 1.3, ac, "SETTINGS", 20.0, y);
-        y += lh * 1.5;
+        text(buf, pw, ph, &self.font, sz * 1.4, ac, "SETTINGS", 20.0, y);
         text(buf, pw, ph, &self.font, sz, tc, &format!("Speed: {} wpm  (up/down to change)", wpm), 20.0, y);
         y += lh;
         let tm = match cfg.theme_mode { speed_reader_core::config::ThemeMode::Dark => "Dark", _ => "Light" };
@@ -130,6 +129,6 @@ impl RSVPRenderer {
         y += lh;
         text(buf, pw, ph, &self.font, sz, tc, &format!("Skip: {} words", cfg.skip_amount), 20.0, y);
         y += lh * 1.5;
-        text(buf, pw, ph, &self.font, sz * 0.8, ac, "Press S to close settings", 20.0, y);
+        text(buf, pw, ph, &self.font, sz * 0.85, ac, "Press S to close settings", 20.0, y);
     }
 }
