@@ -92,7 +92,7 @@ impl RSVPRenderer {
     pub fn progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize, paused: bool) {
         let tc = hex(&self.co.text);
         let ac = hex(&self.co.accent);
-        let sz = self.fs * 0.45;
+        let sz = self.fs * 0.5;
 
         // Status indicator - top right
         let status = if paused { "[PAUSED]" } else { "[PLAY]" };
