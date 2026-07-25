@@ -2050,9 +2050,6 @@ dependencies = [
 name = "speed-reader-zed"
 version = "0.1.0"
 dependencies = [
- "serde",
- "serde_json",
- "speed-reader-core",
  "zed_extension_api",
 ]
 
