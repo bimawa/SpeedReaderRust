@@ -54,7 +54,7 @@ pub struct RSVPRenderer {
 
 impl RSVPRenderer {
     pub fn new(cfg: &ConfigModel) -> Self {
-        let fd: &[u8] = include_bytes!("../../assets/NotoSans-Regular.ttf");
+        let fd: &[u8] = include_bytes!("../NotoSans-Regular.ttf");
         Self { fs: cfg.font_size, co: cfg.current_colors().clone(), wpm: cfg.wpm, font: FontArc::try_from_slice(fd).expect("f") }
     }
     pub fn set_wpm(&mut self, v: u32) { self.wpm = v; }
