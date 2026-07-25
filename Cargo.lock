@@ -1719,7 +1719,7 @@ dependencies = [
  "pixels",
  "serde",
  "serde_json",
- "speed-reader-core 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "speed-reader-core",
  "tempfile",
  "winit",
 ]
@@ -1727,17 +1727,6 @@ dependencies = [
 [[package]]
 name = "speed-reader-core"
 version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "speed-reader-core"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcc750ee975d1e11f62512d1a42665c14b95a5f504deb8b4a045de5ccf1f0249"
 dependencies = [
  "serde",
  "serde_json",
