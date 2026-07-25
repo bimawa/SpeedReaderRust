@@ -2,7 +2,7 @@
 
 RSVP (Rapid Serial Visual Presentation) reading overlay. Displays text word by word with highlighted center letter (ORP). Press Space to pause and jump to the exact reading position in the editor. This app needs for read fast Spec driven development documenntations for people. 
 
-![SpeedReader in action](screenshot.webp)
+![SpeedReader in action](screenshot.gif)
 
 ## Install
 
