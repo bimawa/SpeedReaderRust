@@ -9,8 +9,7 @@ repository = "https://github.com/bimawa/SpeedReaderRust"
 keywords = ["speed-reading", "rsvp", "zed", "overlay"]
 categories = ["command-line-utilities", "text-processing"]
 
-[dependencies]
-speed-reader-core = { path = "../core" }
+speed-reader-core = "0.1.0"
 winit = "0.30"
 clap = { version = "4", features = ["derive"] }
 serde.workspace = true
