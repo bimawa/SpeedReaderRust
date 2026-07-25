@@ -88,29 +88,26 @@ impl RSVPRenderer {
             cx += adv;
         }
     }
-
-    pub fn progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize, paused: bool) {
+    pub fn progress(&self, buf: &mut [u8], pw: usize, ph: usize, cur: usize, total: usize, wpm: u32, paused: bool) {
         let tc = hex(&self.co.text);
         let ac = hex(&self.co.accent);
         let sz = self.fs * 0.5;
+
+        // WPM - top left
+        text(buf, pw, ph, &self.font, sz, tc, &format!("{} wpm", wpm), 8.0, 16.0 + sz);
 
         // Status indicator - top right
         let status = if paused { "[PAUSED]" } else { "[PLAY]" };
         let sc = if paused { ac } else { tc };
         let sw = status.len() as f32 * sz * 0.55;
-        text(buf, pw, ph, &self.font, sz, sc, status, pw as f32 - sw - 8.0, 18.0 + sz);
-
-        // WPM - top left
-        text(buf, pw, ph, &self.font, sz, tc, &format!("{} wpm", self.wpm), 8.0, 18.0 + sz);
+        text(buf, pw, ph, &self.font, sz, sc, status, pw as f32 - sw - 8.0, 16.0 + sz);
 
         // Progress - bottom left
         text(buf, pw, ph, &self.font, sz, tc, &format!("{}/{}", cur, total), 8.0, ph as f32 - 8.0);
 
-        // Controls - bottom, centered
+        // Controls - bottom center
         let hints = "Space=Pause  arrows=Skip  Up/Down=Speed  S=Settings  Esc=Exit";
-        let hw = hints.len() as f32 * sz * 0.38;
-        text(buf, pw, ph, &self.font, sz, tc, hints,
-            (pw as f32 - hw) / 2.0, ph as f32 - 8.0);
+        text(buf, pw, ph, &self.font, sz, tc, hints, 8.0, ph as f32 - 8.0 - sz - 4.0);
     }
 
     pub fn settings(&self, buf: &mut [u8], pw: usize, ph: usize, cfg: &ConfigModel, wpm: u32) {

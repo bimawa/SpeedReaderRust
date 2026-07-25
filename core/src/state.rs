@@ -125,11 +125,11 @@ impl ReadingState {
                     self.state,
                 ))
             }
-            (State::Paused { .. }, Event::SpeedUp(delta)) => {
+            (State::Playing { .. } | State::Paused { .. }, Event::SpeedUp(delta)) => {
                 self.wpm = (self.wpm + delta).min(1000);
                 Ok(StateChange::Stay(self.state))
             }
-            (State::Paused { .. }, Event::SpeedDown(delta)) => {
+            (State::Playing { .. } | State::Paused { .. }, Event::SpeedDown(delta)) => {
                 self.wpm = self.wpm.saturating_sub(delta).max(50);
                 Ok(StateChange::Stay(self.state))
             }
@@ -138,22 +138,15 @@ impl ReadingState {
                 Ok(StateChange::Transition(state, State::Idle))
             }
             (_, Event::Play) | (_, Event::Pause) | (_, Event::Resume) => {
-                Err(StateError::InvalidTransition {
-                    from: self.state,
-                    event,
-                })
+                Err(StateError::InvalidTransition { from: self.state, event })
             }
-            (_, Event::SkipForward(_))
-            | (_, Event::SkipBackward(_))
-            | (_, Event::SpeedUp(_))
-            | (_, Event::SpeedDown(_)) => Err(StateError::InvalidTransition {
-                from: self.state,
-                event,
-            }),
-            (_, Event::TokenAdvanced) => Err(StateError::InvalidTransition {
-                from: self.state,
-                event,
-            }),
+            (_, Event::SkipForward(_)) | (_, Event::SkipBackward(_)) => {
+                Err(StateError::InvalidTransition { from: self.state, event })
+            }
+            (_, Event::TokenAdvanced) => {
+                Err(StateError::InvalidTransition { from: self.state, event })
+            }
+            _ => Err(StateError::InvalidTransition { from: self.state, event }),
         }
     }
 }

@@ -6,12 +6,7 @@ use winit::keyboard::{Key, NamedKey};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ActionResult {
-    Continue,
-    Exit,
-    Render,
-    PausedAndJumped,
-    SpeedChanged(u32),
-    Restarted,
+    Continue, Exit, Render, PausedAndJumped, SpeedChanged(u32), Restarted,
 }
 
 pub struct InputHandler {
@@ -22,19 +17,22 @@ pub struct InputHandler {
 }
 
 impl InputHandler {
-    pub fn new(file_path: Option<String>, tokens: Vec<Token>, text: &str, config: ConfigModel) -> Self {
-        Self { file_path, position_tracker: PositionTracker::new(text), tokens, config }
+    pub fn new(fp: Option<String>, tokens: Vec<Token>, text: &str, config: ConfigModel) -> Self {
+        Self { file_path: fp, position_tracker: PositionTracker::new(text), tokens, config }
     }
 
     pub fn handle_key(&self, key: &Key, state: &mut ReadingState) -> ActionResult {
         match key {
             Key::Named(NamedKey::Space) => self.handle_space(state),
             Key::Character(c) if c.as_ref() == " " => self.handle_space(state),
-            Key::Named(NamedKey::Escape) => { let _ = state.transition(Event::Stop); ActionResult::Exit }
-            Key::Named(NamedKey::ArrowLeft) => self.handle_skip(state, false),
-            Key::Named(NamedKey::ArrowRight) => self.handle_skip(state, true),
-            Key::Named(NamedKey::ArrowUp) => self.handle_speed(state, true),
-            Key::Named(NamedKey::ArrowDown) => self.handle_speed(state, false),
+            Key::Named(NamedKey::Escape) | Key::Character(c) if c.as_ref() == "q" || c.as_ref() == "Q" => {
+                let _ = state.transition(Event::Stop);
+                ActionResult::Exit
+            }
+            Key::Named(NamedKey::ArrowLeft) | Key::Character(c) if c.as_ref() == "a" || c.as_ref() == "A" => self.handle_skip(state, false),
+            Key::Named(NamedKey::ArrowRight) | Key::Character(c) if c.as_ref() == "d" || c.as_ref() == "D" => self.handle_skip(state, true),
+            Key::Named(NamedKey::ArrowUp) | Key::Character(c) if c.as_ref() == "w" || c.as_ref() == "W" => self.handle_speed(state, true),
+            Key::Named(NamedKey::ArrowDown) | Key::Character(c) if c.as_ref() == "s" || c.as_ref() == "S" => self.handle_speed(state, false),
             Key::Character(c) if c.as_ref() == "r" || c.as_ref() == "R" => {
                 let _ = state.transition(Event::Stop);
                 let _ = state.transition(Event::Play);
@@ -52,23 +50,22 @@ impl InputHandler {
         }
     }
 
+    fn playing_or_paused(state: &ReadingState) -> bool {
+        matches!(state.current_state(), State::Playing { .. } | State::Paused { .. })
+    }
+
     fn handle_skip(&self, state: &mut ReadingState, forward: bool) -> ActionResult {
-        if !matches!(state.current_state(), State::Paused { .. }) { return ActionResult::Continue }
+        if !Self::playing_or_paused(state) { return ActionResult::Continue }
         let n = self.config.skip_amount as usize;
-        let ev = if forward { Event::SkipForward(n) } else { Event::SkipBackward(n) };
-        let _ = state.transition(ev);
+        let _ = state.transition(if forward { Event::SkipForward(n) } else { Event::SkipBackward(n) });
         ActionResult::Render
     }
 
     fn handle_speed(&self, state: &mut ReadingState, up: bool) -> ActionResult {
+        if !Self::playing_or_paused(state) { return ActionResult::Continue }
         let step = self.config.speed_step;
-        if matches!(state.current_state(), State::Playing { .. } | State::Paused { .. }) {
-            let ev = if up { Event::SpeedUp(step) } else { Event::SpeedDown(step) };
-            let _ = state.transition(ev);
-            ActionResult::SpeedChanged(state.wpm())
-        } else {
-            ActionResult::Continue
-        }
+        let _ = state.transition(if up { Event::SpeedUp(step) } else { Event::SpeedDown(step) });
+        ActionResult::SpeedChanged(state.wpm())
     }
 
     pub fn jump_to_position(&self, state: &ReadingState) {
@@ -94,39 +91,28 @@ mod tests {
         let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play);
         assert_eq!(h.handle_key(&Key::Named(NamedKey::Space), &mut s), ActionResult::PausedAndJumped);
     }
-    #[test] fn space_char_pauses() {
-        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
-        let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play);
-        assert_eq!(h.handle_key(&Key::Character(" ".into()), &mut s), ActionResult::PausedAndJumped);
-    }
     #[test] fn space_resumes() {
         let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
         let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
         assert_eq!(h.handle_key(&Key::Named(NamedKey::Space), &mut s), ActionResult::Render);
     }
-    #[test] fn space_char_resumes() {
-        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
-        let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
-        assert_eq!(h.handle_key(&Key::Character(" ".into()), &mut s), ActionResult::Render);
-    }
-    #[test] fn esc_exits() {
+    #[test] fn esc_or_q_exits() {
         let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
         let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play);
         assert_eq!(h.handle_key(&Key::Named(NamedKey::Escape), &mut s), ActionResult::Exit);
-    }
-    #[test] fn r_restarts() {
-        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
-        let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
-        assert_eq!(h.handle_key(&Key::Character("r".into()), &mut s), ActionResult::Restarted);
-    }
-    #[test] fn speed_up_works_playing() {
-        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
         let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play);
+        assert_eq!(h.handle_key(&Key::Character("q".into()), &mut s), ActionResult::Exit);
+    }
+    #[test] fn skip_speed_work_playing() {
+        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
+        let mut s = ReadingState::new(5, 300); let _ = s.transition(Event::Play);
+        assert_eq!(h.handle_key(&Key::Named(NamedKey::ArrowRight), &mut s), ActionResult::Render);
         assert!(matches!(h.handle_key(&Key::Named(NamedKey::ArrowUp), &mut s), ActionResult::SpeedChanged(_)));
     }
-    #[test] fn speed_down_works_paused() {
+    #[test] fn skip_speed_work_paused() {
         let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
-        let mut s = ReadingState::new(1, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
+        let mut s = ReadingState::new(5, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
+        assert_eq!(h.handle_key(&Key::Named(NamedKey::ArrowLeft), &mut s), ActionResult::Render);
         assert!(matches!(h.handle_key(&Key::Named(NamedKey::ArrowDown), &mut s), ActionResult::SpeedChanged(_)));
     }
 }

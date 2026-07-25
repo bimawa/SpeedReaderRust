@@ -164,7 +164,7 @@ impl ApplicationHandler for OverlayWindow {
                             let t = &self.tokens[i];
                             let p = matches!(self.state.current_state(), State::Paused { .. });
                             self.renderer.word(fb, pw, ph, &t.word, t.orp_index);
-                            self.renderer.progress(fb, pw, ph, i + 1, self.tokens.len(), p);
+                            self.renderer.progress(fb, pw, ph, i + 1, self.tokens.len(), self.timing.wpm(), p);
                         }
                     }
                     if self.settings {
