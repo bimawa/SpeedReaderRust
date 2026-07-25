@@ -47,6 +47,7 @@ pub struct ConfigModel {
     pub skip_amount: u32,
     pub speed_step: u32,
     pub theme: Theme,
+    pub editor_cmd: String,
 }
 
 impl Default for ConfigModel {
@@ -58,6 +59,7 @@ impl Default for ConfigModel {
             skip_amount: 5,
             speed_step: 10,
             theme: Theme::default(),
+            editor_cmd: "zed".into(),
         }
     }
 }
@@ -77,12 +79,16 @@ impl ConfigModel {
         if self.speed_step == 0 {
             errors.push("speed_step must be > 0".into());
         }
+        if self.editor_cmd.is_empty() {
+            errors.push("editor_cmd must not be empty".into());
+        }
         if errors.is_empty() {
             Ok(())
         } else {
             Err(errors)
         }
     }
+
 
     pub fn current_colors(&self) -> &ThemeColors {
         match self.theme_mode {

@@ -99,7 +99,7 @@ impl InputHandler {
         };
         if ti >= self.tokens.len() { return }
         let pos = self.position_tracker.position_for_offset(self.tokens[ti].byte_offset);
-        let _ = std::process::Command::new("zed")
+        let _ = std::process::Command::new(&self.config.editor_cmd)
             .arg(format!("{}:{}:{}", fp, pos.line, pos.column + 1))
             .spawn();
     }
