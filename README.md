@@ -5,9 +5,16 @@ RSVP (Rapid Serial Visual Presentation) reading overlay. Displays text word by w
 ## Install
 
 ```sh
-cargo build --release -p speed-reader
-cp target/release/speed-reader /usr/local/bin/
+# From crates.io (requires `speed-reader-core` published)
+# cargo install speed-reader
+
+# From source
+git clone https://github.com/bimawa/SpeedReaderRust
+cd SpeedReaderRust
+cargo install --path gui
 ```
+
+This installs the `speed-reader` binary to `~/.cargo/bin/`.
 
 ## Usage in Zed
 

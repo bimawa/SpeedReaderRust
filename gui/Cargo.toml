@@ -4,6 +4,10 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+description = "RSVP speed reading overlay — displays text word by word with ORP highlighting"
+repository = "https://github.com/bimawa/SpeedReaderRust"
+keywords = ["speed-reading", "rsvp", "zed", "overlay"]
+categories = ["command-line-utilities", "text-processing"]
 
 [dependencies]
 speed-reader-core = { path = "../core" }

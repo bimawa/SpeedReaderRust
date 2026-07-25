@@ -4,6 +4,10 @@ version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+description = "RSVP engine — tokenizer, ORP positioning, WPM timing, state machine"
+repository = "https://github.com/bimawa/SpeedReaderRust"
+keywords = ["speed-reading", "rsvp", "text", "reading"]
+categories = ["text-processing"]
 
 [dependencies]
 unicode-segmentation = "1.12"
