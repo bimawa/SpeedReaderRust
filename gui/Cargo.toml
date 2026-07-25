@@ -11,7 +11,7 @@ categories = ["command-line-utilities", "text-processing"]
 
 [dependencies]
 
-speed-reader-core = "0.2.0"
+speed-reader-core = "0.2.1"
 clap = { version = "4", features = ["derive"] }
 winit = "0.30"
 serde = { version = "1", features = ["derive"] }

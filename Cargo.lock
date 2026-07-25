@@ -1712,7 +1712,7 @@ dependencies = [
 
 [[package]]
 name = "speed-reader"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ab_glyph",
  "clap",
@@ -1726,7 +1726,7 @@ dependencies = [
 
 [[package]]
 name = "speed-reader-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
