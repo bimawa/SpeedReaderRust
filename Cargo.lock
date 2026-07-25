@@ -2024,16 +2024,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "speed-reader-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "speed-reader-gui"
+name = "speed-reader"
 version = "0.1.0"
 dependencies = [
  "ab_glyph",
@@ -2044,6 +2035,15 @@ dependencies = [
  "speed-reader-core",
  "tempfile",
  "winit",
+]
+
+[[package]]
+name = "speed-reader-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "unicode-segmentation",
 ]
 
 [[package]]
