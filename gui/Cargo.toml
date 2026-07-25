@@ -1,6 +1,6 @@
 [package]
 name = "speed-reader"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -11,7 +11,7 @@ categories = ["command-line-utilities", "text-processing"]
 
 [dependencies]
 
-speed-reader-core = "0.1.0"
+speed-reader-core = "0.2.0"
 clap = { version = "4", features = ["derive"] }
 winit = "0.30"
 serde = { version = "1", features = ["derive"] }
