@@ -4,6 +4,8 @@ RSVP (Rapid Serial Visual Presentation) reading overlay. Displays text word by w
 
 ## Install
 
+![SpeedReader in action](screenshot.webp)
+
 ```sh
 cargo install speed-reader
 ```
