@@ -5,7 +5,7 @@ use speed_reader_core::config::ConfigModel;
 use speed_reader_core::tokenizer::tokenize;
 
 #[derive(Parser, Debug)]
-#[command(name = "speed-reader", about = "RSVP speed reader overlay for Zed")]
+#[command(name = "speed-reader", version, about = "RSVP speed reader overlay")]
 pub struct Cli {
     pub file_path: Option<String>,
 
