@@ -8,7 +8,7 @@ clean:
     cargo clean
 
 install: build
-    cp target/release/speed-reader /usr/local/bin/
+  cargo install
 
 version:
     @grep "^version = " core/Cargo.toml | head -1
