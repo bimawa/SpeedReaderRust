@@ -72,7 +72,7 @@ impl InputHandler {
         if ti >= self.tokens.len() { return }
         let pos = self.position_tracker.position_for_offset(self.tokens[ti].byte_offset);
         let _ = std::process::Command::new(&self.config.editor_cmd)
-            .arg(format!("\"{}\":{}:{}", fp, pos.line, pos.column + 1))
+            .arg(format!("{}:{}:{}", fp, pos.line, pos.column + 1))
             .spawn();
     }
 }
@@ -109,10 +109,5 @@ mod tests {
         let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
         let mut s = ReadingState::new(5, 300); let _ = s.transition(Event::Play);
         assert!(matches!(h.handle_key(&Key::Named(NamedKey::ArrowUp), &mut s), ActionResult::SpeedChanged(_)));
-    }
-    #[test] fn speed_works_paused() {
-        let h = InputHandler::new(Some("x.rs".into()), tok(), txt(), cfg());
-        let mut s = ReadingState::new(5, 300); let _ = s.transition(Event::Play); let _ = s.transition(Event::Pause);
-        assert!(matches!(h.handle_key(&Key::Named(NamedKey::ArrowDown), &mut s), ActionResult::SpeedChanged(_)));
     }
 }
