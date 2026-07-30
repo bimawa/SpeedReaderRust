@@ -55,6 +55,49 @@ Add to `~/.config/zed/keybindings.json`:
 
 Then `Cmd+Shift+R` from any buffer.
 
+### 4. Read buffer (pbpaste)
+
+Launch the reader with selected text instead of the full file:
+
+Add a second task to `~/.config/zed/tasks.json`:
+
+```json
+[
+  {
+    "label": "SpeedReader: Read current file",
+    "command": "speed-reader",
+    "args": ["$ZED_FILE"],
+    "tags": ["speed-reader"],
+    "hide": "on_success"
+  },
+  {
+    "label": "SpeedReader: Read buffer",
+    "command": "bash",
+    "args": ["-c", "pbpaste | speed-reader"],
+    "tags": ["speed-reader"],
+    "hide": "on_success"
+  }
+]
+```
+
+**Usage:**
+1. Select text in the editor.
+2. `Cmd+C` to copy selection to clipboard.
+3. `Cmd+Shift+P` → `SpeedReader: Read buffer`.
+
+Or add a keybinding in `~/.config/zed/keybindings.json`:
+
+```json
+{
+  "context": "Editor",
+  "bindings": {
+    "cmd-shift-t": ["task::Spawn", { "task_name": "SpeedReader: Read buffer" }]
+  }
+}
+```
+
+Then select text, copy, and press `Cmd+Shift+T`.
+
 ## Configure editor (not just Zed)
 
 Edit `~/.config/speed-reader/config.json`:
