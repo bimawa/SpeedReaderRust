@@ -10,7 +10,7 @@ use winit::{
     dpi::{LogicalPosition, LogicalSize, Position},
     event::{ElementState, KeyEvent, WindowEvent, MouseButton},
     event_loop::{ActiveEventLoop, EventLoop},
-    keyboard::Key,
+    keyboard::{Key, ModifiersState},
     window::{Window, WindowAttributes, WindowId, WindowLevel},
 };
 
@@ -40,6 +40,8 @@ pub struct OverlayWindow {
     last: Instant,
     drg: Option<(f64, f64)>,
     cursor: Option<(f64, f64)>,
+    modifiers: ModifiersState,
+    zoom: f64,
     pub settings: bool,
 }
 
@@ -51,7 +53,8 @@ impl OverlayWindow {
             state: ReadingState::new(tokens.len(), config.wpm),
             timing: TimingEngine::new(config.wpm),
             config, window: None, pixels: None, tokens,
-            last: Instant::now(), drg: None, cursor: None, settings: false,
+            last: Instant::now(), drg: None, cursor: None,
+            modifiers: ModifiersState::default(), zoom: 1.0, settings: false,
         }
     }
 
@@ -72,8 +75,18 @@ impl OverlayWindow {
     }
 
     fn on_key(&mut self, key: &Key, el: &ActiveEventLoop) {
+        if self.modifiers.super_key() {
+            if let Key::Character(c) = key {
+                match c.as_ref() {
+                    "=" | "+" => { self.apply_zoom(self.zoom * 1.1); return; }
+                    "-" => { self.apply_zoom(self.zoom / 1.1); return; }
+                    "0" => { self.apply_zoom(1.0); return; }
+                    _ => {}
+                }
+            }
+        }
         if let Key::Character(c) = key {
-            if c == "s" || c == "S" {
+            if !self.modifiers.super_key() && (c == "s" || c == "S") {
                 self.settings = !self.settings;
                 if let Some(w) = &self.window { w.request_redraw(); }
                 return;
@@ -96,6 +109,29 @@ impl OverlayWindow {
                 self.last = Instant::now();
                 if let Some(w) = &self.window { w.request_redraw(); }
             }
+        }
+    }
+
+    fn apply_zoom(&mut self, z: f64) {
+        self.zoom = z.clamp(0.5, 4.0);
+        self.renderer.set_font_size((self.config.font_size as f64 * self.zoom) as f32);
+        let nw = W * self.zoom;
+        let nh = H * self.zoom;
+        if let Some(w) = self.window.as_ref() {
+            let sf = w.scale_factor();
+            let old = w.inner_size();
+            if let Ok(pos) = w.outer_position() {
+                let cx = pos.x as f64 + old.width as f64 / 2.0;
+                let cy = pos.y as f64 + old.height as f64 / 2.0;
+                let npw = nw * sf;
+                let nph = nh * sf;
+                w.set_outer_position(Position::Physical(winit::dpi::PhysicalPosition::new(
+                    (cx - npw / 2.0).max(0.0) as i32,
+                    (cy - nph / 2.0).max(0.0) as i32,
+                )));
+            }
+            let _ = w.request_inner_size(LogicalSize::new(nw, nh));
+            w.request_redraw();
         }
     }
 }
@@ -126,9 +162,11 @@ impl ApplicationHandler for OverlayWindow {
             WindowEvent::Resized(size) => {
                 if let Some(px) = self.pixels.as_mut() {
                     let _ = px.resize_surface(size.width.max(1), size.height.max(1));
+                    let _ = px.resize_buffer(size.width.max(1), size.height.max(1));
                 }
                 if let Some(w) = &self.window { w.request_redraw(); }
             }
+            WindowEvent::ModifiersChanged(m) => { self.modifiers = m.state(); }
             WindowEvent::CloseRequested => el.exit(),
             WindowEvent::MouseInput { state, button: MouseButton::Left, .. } => {
                 self.drg = if state == ElementState::Pressed { self.cursor } else { None };
